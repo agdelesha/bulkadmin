@@ -796,13 +796,7 @@
 
 </script>
 
-<!-- Кнопка очистки кэша -->
-<div id="cache-control-panel" class="cache-control-panel">
-    <button id="clear-cache-btn" class="cache-control-btn" title="Очистить кэш и обновить данные с сервера">
-        <span class="cache-icon">🔄</span>
-        <span class="cache-text">Обновить данные</span>
-    </button>
-</div>
+
 
 <style>
     /* Стили для панели управления кэшем */
@@ -863,24 +857,7 @@
 </style>
 
 <script>
-    // Обработчик нажатия на кнопку очистки кэша
-    document.addEventListener('DOMContentLoaded', function() {
-        const clearCacheBtn = document.getElementById('clear-cache-btn');
-        if (clearCacheBtn) {
-            clearCacheBtn.addEventListener('click', function() {
-                // Очищаем весь кэш
-                if (window.CacheManager) {
-                    CacheManager.clearAllCache();
-                    // Перезагружаем страницу для обновления данных
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    showTemporaryMessage('Менеджер кэша не инициализирован', 'error');
-                }
-            });
-        }
-    });
+    // Инициализация скриптов
 </script>
 </body>
 </html>
