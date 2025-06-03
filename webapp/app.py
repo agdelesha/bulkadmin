@@ -101,6 +101,9 @@ class Client(db.Model):
     last_name = db.Column(db.String(150), nullable=True)
     username = db.Column(db.String(100), nullable=True, unique=True)
     phone_number = db.Column(db.String(20), nullable=True)  # Поле для номера телефона
+    inn = db.Column(db.String(12), nullable=True)
+    delivery_address = db.Column(db.Text, nullable=True)
+    registration_step = db.Column(db.String(20), nullable=True)  # Для отслеживания этапа регистрации
     date_registered = db.Column(db.DateTime, default=datetime.utcnow)
     
     orders = db.relationship('Order', backref='client', lazy='dynamic')
@@ -1608,6 +1611,23 @@ def get_cart_state():
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Ошибка при получении состояния корзины: {str(e)}'}), 500
 
+# --- API для сброса корзины ---
+@app.route('/api/cart/reset', methods=['POST'])
+def api_reset_cart():
+    # Очищаем корзину в сессии
+    if 'cart' in session:
+        session.pop('cart')
+    
+    # Если пользователь авторизован через Telegram, находим его активный заказ и удаляем
+    if 'telegram_user_id' in session:
+        user_id = session['telegram_user_id']
+        active_order = Order.query.filter_by(client_id=user_id, status=CART_STATUS).first()
+        if active_order:
+            db.session.delete(active_order)
+            db.session.commit()
+    
+    return jsonify({'status': 'success', 'message': 'Корзина очищена'})
+
 # --- API для получения информации о товарах в корзине ---
 @app.route('/api/cart/items', methods=['GET'])
 def get_cart_items():
@@ -1789,8 +1809,18 @@ def send_order_notification_to_admin(order):
     
     # Получаем информацию о клиенте
     client = Client.query.get(order.client_id) if order.client_id else None
-    client_info = f"Клиент: {client.name if client else 'Неизвестно'}"
-    phone_info = f"Телефон: {client.phone_number if client and client.phone_number else 'Не указан'}"
+    
+    # Формируем информацию о клиенте
+    client_info = []
+    if client:
+        client_info.extend([
+            f"<b>Клиент:</b> {client.first_name} {client.last_name if client.last_name else ''}",
+            f"<b>Telegram:</b> @{client.username}" if client.username else None,
+            f"<b>Телефон:</b> {client.phone_number}" if client.phone_number else None,
+            f"<b>ИНН:</b> {client.inn}" if client.inn else None,
+            f"<b>Адрес доставки:</b> {client.delivery_address}" if client.delivery_address else None
+        ])
+    client_info = "\n".join([info for info in client_info if info is not None])
     
     # Формируем список товаров
     items_text = ""
@@ -1800,18 +1830,19 @@ def send_order_notification_to_admin(order):
         product = Product.query.get(item.product_id)
         if product:
             item_price = item.price_at_purchase * item.quantity
-            items_text += f"- {product.name} x {item.quantity} = {item_price} руб.\n"
+            items_text += f"- {product.name} x {item.quantity} = {item_price:,.2f} руб.\n"
             total_amount += item_price
     
     # Формируем текст уведомления
-    message = f"""<b>Новый заказ #{order.id}</b>
+    message = f"""<b>📦 Новый заказ #{order.id}</b>
 
 {client_info}
-{phone_info}
 
-<b>Товары:</b>
+<b>🛒 Товары:</b>
 {items_text}
-<b>Итого:</b> {total_amount} руб."""
+<b>💰 Итого:</b> {total_amount:,.2f} руб.
+
+<b>📅 Дата:</b> {order.created_at.strftime('%d.%m.%Y %H:%M')}"""
     
     # Создаем кнопки для принятия/отмены заказа
     reply_markup = {
@@ -1884,6 +1915,29 @@ def telegram_webhook():
     if 'message' in data and 'text' in data['message'] and data['message']['text'] == '/start':
         user_id = data['message']['from']['id']
         first_name = data['message']['from'].get('first_name', '')
+        last_name = data['message']['from'].get('last_name', '')
+        
+        # Создаем или обновляем клиента
+        client = Client.query.get(user_id)
+        if not client:
+            client = Client(id=user_id, first_name=first_name, last_name=last_name, registration_step='phone')
+            db.session.add(client)
+        else:
+            # Если клиент уже полностью зарегистрирован, показываем веб-приложение
+            if client.phone_number and client.inn and client.delivery_address:
+                reply_markup = {
+                    "inline_keyboard": [[
+                        {
+                            "text": "Открыть магазин",
+                            "web_app": {"url": "https://d2d6-83-217-9-75.ngrok-free.app"}
+                        }
+                    ]]
+                }
+                send_telegram_message(user_id, "Добро пожаловать в наш магазин!", reply_markup)
+                return jsonify({'status': 'ok'})
+            # Иначе начинаем регистрацию заново
+            client.registration_step = 'phone'
+        db.session.commit()
         
         # Создаем кнопку для запроса номера телефона
         reply_markup = {
@@ -1898,7 +1952,7 @@ def telegram_webhook():
         }
         
         # Отправляем приветственное сообщение с кнопкой
-        welcome_message = f"Привет, {first_name}! Добро пожаловать в наш магазин. Чтобы мы могли связаться с вами по вопросам заказа, пожалуйста, поделитесь своим номером телефона."
+        welcome_message = f"Привет, {first_name}! Добро пожаловать в наш магазин. Для начала работы нам нужно собрать некоторые данные.\n\nПожалуйста, поделитесь своим номером телефона."
         send_telegram_message(user_id, welcome_message, reply_markup)
         
         return jsonify({'status': 'ok'})
@@ -1913,33 +1967,55 @@ def telegram_webhook():
         # Проверяем, есть ли клиент в базе данных
         client = Client.query.get(user_id)
         
-        # Если клиент существует, проверяем, изменился ли номер телефона
-        if client:
-            # Проверяем, если номер телефона уже сохранен и не изменился
-            if client.phone_number != phone_number:
-                # Сохраняем новый номер телефона
-                client.phone_number = phone_number
+        if client and client.registration_step == 'phone':
+            client.phone_number = phone_number
+            client.registration_step = 'inn'
+            db.session.commit()
+            
+            # Убираем клавиатуру и запрашиваем ИНН
+            reply_markup = {"remove_keyboard": True}
+            send_telegram_message(user_id, "Спасибо! Теперь, пожалуйста, введите ваш ИНН.", reply_markup)
+            return jsonify({'status': 'ok'})
+            
+    # Обрабатываем текстовые сообщения для ИНН и адреса
+    if 'message' in data and 'text' in data['message']:
+        user_id = data['message']['from']['id']
+        text = data['message']['text']
+        
+        client = Client.query.get(user_id)
+        if not client:
+            return jsonify({'status': 'error', 'message': 'Client not found'})
+            
+        # Обработка ИНН
+        if client.registration_step == 'inn':
+            # Проверяем формат ИНН (должно быть 10 или 12 цифр)
+            if text.isdigit() and len(text) in [10, 12]:
+                client.inn = text
+                client.registration_step = 'address'
                 db.session.commit()
-                
-                # Убираем кнопку после получения номера телефона
-                remove_keyboard = {
-                    "remove_keyboard": True
-                }
-                
-                # Отправляем подтверждение с пустой клавиатурой
-                send_telegram_message(user_id, "Спасибо! Ваш номер телефона сохранен.", remove_keyboard)
-                
-                # Проверяем, есть ли активный заказ
-                active_order = Order.query.filter_by(client_id=user_id, status="Оформлен").first()
-                if active_order:
-                    # Отправляем обновленное уведомление администратору
-                    send_order_notification_to_admin(active_order)
+                send_telegram_message(user_id, "Отлично! Теперь введите адрес доставки.")
             else:
-                # Если номер телефона не изменился, просто убираем кнопку
-                remove_keyboard = {
-                    "remove_keyboard": True
-                }
-                send_telegram_message(user_id, "Ваш номер телефона уже сохранен в системе.", remove_keyboard)
+                send_telegram_message(user_id, "Пожалуйста, введите корректный ИНН (10 или 12 цифр).")
+            return jsonify({'status': 'ok'})
+            
+        # Обработка адреса
+        elif client.registration_step == 'address':
+            client.delivery_address = text
+            client.registration_step = 'completed'
+            db.session.commit()
+            
+            # Отправляем сообщение с кнопкой веб-приложения
+            reply_markup = {
+                "inline_keyboard": [[
+                    {
+                        "text": "Открыть магазин",
+                        "web_app": {"url": "https://d2d6-83-217-9-75.ngrok-free.app"}
+                    }
+                ]]
+            }
+            send_telegram_message(user_id, "Спасибо за регистрацию! Теперь вы можете начать покупки.", reply_markup)
+            return jsonify({'status': 'ok'})
+
         
         return jsonify({'status': 'ok'})
     
@@ -1972,7 +2048,7 @@ def telegram_webhook():
                     updated_text = original_text + f"\n\n✅ Заказ принят ({datetime.now().strftime('%H:%M:%S')})"
                     
                     # Отправляем запрос на редактирование сообщения
-                    bot_token = get_telegram_bot_token()
+                    bot_token = app.config['TELEGRAM_BOT_TOKEN']
                     edit_message_url = f"https://api.telegram.org/bot{bot_token}/editMessageText"
                     edit_data = {
                         'chat_id': chat_id,
@@ -2012,7 +2088,7 @@ def telegram_webhook():
                     updated_text = original_text + f"\n\n❌ Заказ отменен ({datetime.now().strftime('%H:%M:%S')})"
                     
                     # Отправляем запрос на редактирование сообщения
-                    bot_token = get_telegram_bot_token()
+                    bot_token = app.config['TELEGRAM_BOT_TOKEN']
                     edit_message_url = f"https://api.telegram.org/bot{bot_token}/editMessageText"
                     edit_data = {
                         'chat_id': chat_id,
