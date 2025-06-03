@@ -1,0 +1,44 @@
+<!-- Отображение результатов поиска -->
+{% if search_query %}
+<div class="search-results-header">
+    <h2>Результаты поиска: "{{ search_query }}"</h2>
+    <a href="{{ url_for('all_products') }}" class="clear-search">Показать все товары</a>
+</div>
+{% endif %}
+
+<!-- Отображение товаров -->
+<section class="products-section">
+    {% if not products_list %}
+    <div class="no-products-found">
+        <p>Не найдено товаров по вашему запросу.</p>
+    </div>
+    {% else %}
+    <div class="products-grid">
+        {% for item in products_list %}
+        <div class="product-card">
+            <div class="product-image-and-content-wrapper">
+                <div class="product-image">
+                    <img src="{{ item.image_url }}" alt="{{ item.name }}" class="product-card-image">
+                    <!-- Кнопка + на фото товара -->
+                    <button type="button" class="product-image-cart-button js-add-to-cart" data-product-id="{{ item.id }}" {% if item.quantity_in_cart > 0 %}style="display:none;"{% endif %}>+</button>
+                    <!-- Контролы количества на фото товара -->
+                    <div class="product-image-quantity-controls js-quantity-controls" data-product-id="{{ item.id }}" {% if not item.quantity_in_cart or item.quantity_in_cart == 0 %}style="display:none;"{% endif %}>
+                        <button type="button" class="minus-btn js-decrease-quantity" data-product-id="{{ item.id }}">-</button>
+                        <span class="item-in-cart-indicator js-product-quantity-display js-editable-quantity" data-product-id="{{ item.id }}">{% if item.quantity_in_cart > 0 %}{{ item.quantity_in_cart }}{% else %}0{% endif %}</span>
+                        <button type="button" class="plus-btn js-increase-quantity" data-product-id="{{ item.id }}">+</button>
+                    </div>
+                </div>
+                <div class="product-card-content">
+                    <h3 class="product-name">
+                        <a href="{{ url_for('product_detail', product_id=item.id) }}" class="product-name-link">{{ item.name }}</a>
+                    </h3>
+                    <p class="product-category">{{ item.category }}</p>
+                    <p class="product-description">{{ item.description }}</p>
+                    <p class="product-price">{{ item.price }} ₽</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</section>

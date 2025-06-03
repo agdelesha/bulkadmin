@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 class="page-heading">Ваша Корзина</h1>
+
+{% if cart_items %}
+    <div class="cart-items-list">
+        {% for item in cart_items %}
+            <div class="cart-item" id="cart-item-{{ item.id }}" style="display: flex; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
+                <img src="{{ item.image_url }}" alt="{{ item.name }}" class="cart-item-image" style="width: 70px; height: 70px; object-fit: cover; margin-right: 20px; border-radius: 4px;">
+                <div class="cart-item-details" style="flex-grow: 1;">
+                    <span class="cart-item-name" style="display: block; font-weight: 600; margin-bottom: 5px;">{{ item.name }}</span>
+                    <span class="cart-item-price-per-unit" style="font-size: 0.9em; color: #555;">{{ item.price|int }} ₽/шт.</span>
+                </div>
+                <div class="quantity-controls-cart-page" style="display: flex; align-items: center; margin-left: 20px;">
+                    <button type="button" class="cart-control-btn minus-btn js-decrease-quantity" data-product-id="{{ item.id }}" style="width: 36px; height: 36px; font-size: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: #FBB03B; color: white; border: none; padding: 0;">-</button>
+                    <span class="item-quantity-text-cart-page js-product-quantity-display js-editable-quantity" id="quantity-{{ item.id }}" data-product-id="{{ item.id }}" style="padding: 0 10px; font-weight: bold; min-width: 20px; text-align: center; cursor: pointer;">{{ item.quantity }}</span>
+                    <button type="button" class="cart-control-btn plus-btn js-increase-quantity" data-product-id="{{ item.id }}" style="width: 36px; height: 36px; font-size: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: #FBB03B; color: white; border: none; padding: 0;">+</button>
+                </div>
+                <span class="cart-item-subtotal" id="subtotal-{{ item.id }}" style="display: none;">{{ "%.2f"|format(item.price * item.quantity) }}</span>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="cart-total" style="text-align: right; margin-top: 20px; font-size: 1.2em; font-weight: bold;">
+        Итого: <span class="cart-total-price" id="cart-total-amount">{{ total_price|int }} ₽</span>
+    </div>
+    <div class="cart-buttons-container" style="display: flex; justify-content: space-between; margin-top: 20px;">
+        <button id="clear-cart-button" class="clear-cart-button">Очистить корзину</button>
+        <a href="{{ url_for('order_placed') }}" class="checkout-button">Оформить заказ</a>
+    </div>
+{% else %}
+    <p class="empty-cart-message">Ваша корзина пуста.</p>
+{% endif %}
+
+<a href="{{ url_for('all_products') }}" class="back-to-all-link" style="display: block; text-align: center; margin-top: 40px;">Продолжить покупки</a>
+
+<script>
+    // Дебаунс функция для предотвращения множественных быстрых запросов
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+    
+    // Обработчик события обновления корзины
+    document.addEventListener('cart:updated', function() {
+        // Проверяем, есть ли видимые товары в корзине
+        if (typeof checkEmptyCartAndUpdateUI === 'function') {
+            checkEmptyCartAndUpdateUI();
+        }
+    });
+
+    // Обработчик нажатия на кнопку "Очистить корзину"
+    document.getElementById('clear-cart-button').addEventListener('click', function() {
+        if (confirm('Вы уверены, что хотите очистить корзину?')) {
+            // Показываем индикатор загрузки или блокируем кнопку
+            const clearButton = document.getElementById('clear-cart-button');
+            const originalText = clearButton.textContent;
+            clearButton.textContent = 'Очистка...';
+            clearButton.disabled = true;
+            
+            // Отправляем запрос на очистку корзины
+            fetch("{{ url_for('clear_cart') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Вместо перезагрузки страницы, обновляем UI
+                    const cartItemsList = document.querySelector('.cart-items-list');
+                    const emptyCartMessage = document.createElement('p');
+                    emptyCartMessage.className = 'empty-cart-message';
+                    emptyCartMessage.textContent = 'Ваша корзина пуста.';
+                    
+                    // Очищаем список товаров и показываем сообщение
+                    if (cartItemsList) {
+                        cartItemsList.innerHTML = '';
+                        cartItemsList.parentNode.insertBefore(emptyCartMessage, cartItemsList);
+                        cartItemsList.style.display = 'none';
+                    }
+                    
+                    // Скрываем итоговую сумму и кнопки
+                    const cartTotal = document.querySelector('.cart-total');
+                    const cartButtons = document.querySelector('.cart-buttons-container');
+                    if (cartTotal) cartTotal.style.display = 'none';
+                    if (cartButtons) cartButtons.style.display = 'none';
+                    
+                    // Обновляем индикатор корзины в шапке
+                    const cartTotalItems = document.getElementById('cart-total-items');
+                    if (cartTotalItems) cartTotalItems.textContent = '0';
+                    
+                    // Показываем уведомление об успешной очистке
+                    if (window.showTemporaryMessage) {
+                        showTemporaryMessage('Корзина успешно очищена', 'success');
+                    }
+                } else {
+                    // Восстанавливаем кнопку и показываем ошибку
+                    clearButton.textContent = originalText;
+                    clearButton.disabled = false;
+                    
+                    if (window.showTemporaryMessage) {
+                        showTemporaryMessage('Ошибка при очистке корзины: ' + data.message, 'error');
+                    } else {
+                        alert('Ошибка при очистке корзины: ' + data.message);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error clearing cart:', error);
+                // Восстанавливаем кнопку и показываем ошибку
+                clearButton.textContent = originalText;
+                clearButton.disabled = false;
+                
+                if (window.showTemporaryMessage) {
+                    showTemporaryMessage('Произошла ошибка при очистке корзины', 'error');
+                } else {
+                    alert('Произошла ошибка при очистке корзины.');
+                }
+            });
+        }
+    });
+    
+    // Используем делегирование событий для кнопок +/- в корзине
+    document.addEventListener('click', function(event) {
+        // Если нажата кнопка +
+        if (event.target.classList.contains('js-increase-quantity')) {
+            event.preventDefault();
+            const productId = event.target.dataset.productId;
+            // Используем глобальную дебаунсированную функцию, если она доступна
+            if (window.debouncedAddToCart) {
+                window.debouncedAddToCart(productId, 1);
+            }
+        }
+        // Если нажата кнопка -
+        else if (event.target.classList.contains('js-decrease-quantity')) {
+            event.preventDefault();
+            const productId = event.target.dataset.productId;
+            if (window.debouncedAddToCart) {
+                window.debouncedAddToCart(productId, -1);
+            }
+        }
+    });
+</script>
+{% endblock %}

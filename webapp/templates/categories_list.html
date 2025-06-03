@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 class="page-heading">Категории Продукции</h1>
+
+<!-- Контейнер для категорий, который будет заполнен с помощью JavaScript -->
+<div id="categories-container" class="categories-page-grid">
+    <!-- Здесь будут отображаться категории -->
+    <div class="loading">Загрузка категорий...</div>
+</div>
+
+<a href="{{ url_for('all_products') }}" class="back-to-all-link" style="display: block; text-align: center; margin-top: 40px;">Посмотреть все блюда</a>
+
+<!-- Скрипт для загрузки категорий с использованием кэша -->
+<script>
+    // Загружаем категории при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        // Проверяем, доступен ли модуль загрузчика данных
+        if (window.CachedDataLoader) {
+            // Загружаем категории с использованием кэша
+            CachedDataLoader.loadCategories('categories-container');
+        } else {
+            // Если модуль недоступен, показываем серверные данные
+            // Отображаем категории из серверного рендеринга
+            const container = document.getElementById('categories-container');
+            container.innerHTML = `
+                {% for category in categories %}
+                <a href="{{ url_for('products_in_category', category_name=category.name) }}" class="category-link-card">
+                    {{ category.name }}
+                </a>
+                {% endfor %}
+            `;
+        }
+    });
+</script>
+{% endblock %}

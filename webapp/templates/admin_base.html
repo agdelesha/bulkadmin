@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Админ-панель - Бульк B2B{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f5f5f5;
+        }
+        
+        .admin-layout {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .admin-header {
+            background-color: #3a3a3a;
+            color: #fff;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .admin-logo-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .admin-nav {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .admin-nav-button {
+            background-color: #FBB03B;
+            color: #333;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 15px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background-color 0.2s;
+        }
+        
+        .admin-nav-button:hover {
+            background-color: #e9a22f;
+        }
+        
+        .admin-nav-button.active {
+            background-color: #fff;
+            color: #333;
+        }
+        
+        .admin-content {
+            flex: 1;
+            padding: 20px;
+            width: 100%;
+            max-width: 1140px;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+        
+        .admin-logo {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .admin-logo-text {
+            color: #FBB03B;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .admin-logo-subtitle {
+            color: #fff;
+            font-size: 12px;
+            display: block;
+            margin-top: 5px;
+        }
+        
+        .admin-nav {
+            padding: 20px 0;
+        }
+        
+        .admin-nav-item {
+            display: block;
+            padding: 12px 20px;
+            color: #fff;
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+        
+        .admin-nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-left-color: #FBB03B;
+        }
+        
+        .admin-nav-item.active {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-left-color: #FBB03B;
+            font-weight: 600;
+        }
+        
+        .admin-nav-item i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        footer {
+            margin-top: 30px;
+            padding: 15px;
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+            border-top: 1px solid #eee;
+        }
+        
+        /* Стили для мобильных устройств */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            
+            .admin-sidebar {
+                width: 100%;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .admin-logo {
+                width: 100%;
+                text-align: center;
+                padding: 1rem 0;
+            }
+            
+            .admin-nav-items {
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .admin-nav-item {
+                padding: 0.5rem 1rem;
+            }
+            
+            .admin-content {
+                width: 100%;
+            }
+        }
+        .admin-logo {
+            color: #FBB03B;
+            font-weight: 700;
+            font-size: 1.4rem;
+            padding: 0 1.5rem;
+            text-align: left;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .admin-logo-subtitle {
+            color: #ecf0f1;
+            font-size: 0.7rem;
+            display: block;
+            font-weight: 400;
+            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .admin-user-menu {
+            background-color: #34495e;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .admin-user-menu .dropdown-item {
+            color: #ecf0f1;
+            padding: 0.7rem 1.2rem;
+            transition: all 0.2s ease;
+        }
+        .admin-user-menu .dropdown-item:hover {
+            background-color: #FBB03B;
+            color: #2c3e50;
+        }
+        .admin-user-dropdown {
+            background-color: #34495e;
+            border-radius: 4px;
+            padding: 0.5rem 1rem;
+            color: #ecf0f1 !important;
+        }
+        .admin-user-dropdown:hover {
+            background-color: #3d5871;
+        }
+        
+        .admin-container {
+            width: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        
+        main {
+            width: 100%;
+            margin: 0;
+            padding: 20px 0;
+        }
+        
+        .page-heading {
+            padding: 0 15px;
+        }
+        
+        .admin-actions {
+            padding: 0 15px;
+        }
+        
+        .admin-table {
+            width: 100%;
+            margin: 20px 0 0 0;
+            border-radius: 0;
+        }
+    </style>
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <div class="admin-layout">
+        <header class="admin-header">
+            <div class="admin-logo-container">
+                <div class="admin-logo-text">Бульк <span class="header-title-business">B2B</span></div>
+                <span class="admin-logo-subtitle">Панель управления</span>
+            </div>
+            <div class="admin-nav">
+                <a class="admin-nav-button {% if request.endpoint and ('product' in request.endpoint or 'products' in request.endpoint) %}active{% endif %}" href="{{ url_for('admin_products_list') }}">
+                    <i class="fas fa-box"></i> Товары
+                </a>
+                <a class="admin-nav-button {% if request.endpoint and ('category' in request.endpoint or 'categories' in request.endpoint) %}active{% endif %}" href="{{ url_for('admin_categories_list') }}">
+                    <i class="fas fa-tags"></i> Категории
+                </a>
+            </div>
+        </header>
+        <div class="admin-content">
+            <main>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    <div class="flash-messages">
+                      {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                {% endwith %}
+                {% block admin_content %}{% endblock %}
+            </main>
+            <footer>
+                <p>&copy; {{ now.year }} Бульк B2B. Админ-панель.</p>
+            </footer>
+        </div>
+    </div>
+    
+
+</body>
+</html>

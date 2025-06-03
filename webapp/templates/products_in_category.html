@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 id="category-heading" class="page-heading products-in-category-title">{{ category_name }}</h1>
+
+<!-- Отображение товаров -->
+<div id="server-rendered-products">
+    <div class="products-grid">
+        {% for item in products %}
+        <div class="product-card">
+            <div class="product-image-and-content-wrapper">
+                <div class="product-image">
+                    <img src="{{ item.image_url }}" alt="{{ item.name }}" class="product-card-image">
+                    <!-- Кнопка + на фото товара -->
+                    <button type="button" class="product-image-cart-button js-add-to-cart" data-product-id="{{ item.id }}" {% if item.quantity_in_cart > 0 %}style="display:none;"{% endif %}>+</button>
+                    <!-- Контролы количества на фото товара -->
+                    <div class="product-image-quantity-controls js-quantity-controls" data-product-id="{{ item.id }}" {% if not item.quantity_in_cart or item.quantity_in_cart == 0 %}style="display:none;"{% endif %}>
+                        <button type="button" class="minus-btn js-decrease-quantity" data-product-id="{{ item.id }}">-</button>
+                        <span class="item-in-cart-indicator js-product-quantity-display js-editable-quantity" data-product-id="{{ item.id }}">{% if item.quantity_in_cart > 0 %}{{ item.quantity_in_cart }}{% else %}0{% endif %}</span>
+                        <button type="button" class="plus-btn js-increase-quantity" data-product-id="{{ item.id }}">+</button>
+                    </div>
+                </div>
+                <div class="product-card-content">
+                    <h3 class="product-name">
+                        <a href="{{ url_for('product_detail', product_id=item.id) }}" class="product-name-link">{{ item.name }}</a>
+                    </h3>
+                    <p class="product-description">{{ item.description }}</p>
+                    <p class="product-price">{{ item.price }} ₽</p>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p>В этой категории пока нет товаров.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<a href="{{ url_for('all_products') }}" class="back-to-all-link">Ко всем блюдам</a>
+<a href="{{ url_for('categories_list') }}" class="back-to-all-link" style="margin-left: 10px;">К списку категорий</a>
+
+<!-- Скрипты для работы с товарами в категории -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Category page loaded');
+        
+        // Проверяем, был ли сброшен флаг resetProductQuantities в localStorage
+        if (localStorage.getItem('resetProductQuantities') === 'true') {
+            console.log('Resetting product quantities after order');
+            // Сбрасываем отображение количества товаров
+            
+            // Показываем кнопки добавления в корзину
+            document.querySelectorAll('.product-image-cart-button').forEach(button => {
+                button.style.display = 'block';
+            });
+            
+            // Скрываем контролы количества
+            document.querySelectorAll('.product-image-quantity-controls').forEach(controls => {
+                controls.style.display = 'none';
+            });
+            
+            // Обнуляем отображаемое количество
+            document.querySelectorAll('.js-product-quantity-display').forEach(display => {
+                display.textContent = '0';
+            });
+            
+            // Удаляем флаг из localStorage
+            localStorage.removeItem('resetProductQuantities');
+        }
+        
+        // Обеспечиваем работу ссылок на названия товаров
+        document.querySelectorAll('.product-name-link').forEach(link => {
+            link.addEventListener('click', function(event) {
+                // Предотвращаем перехват события другими обработчиками
+                event.stopPropagation();
+                // Позволяем ссылке работать по умолчанию
+                return true;
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="order-confirmation-container">
+    <div class="order-confirmation-content">
+        <h1 class="order-confirmation-heading">Спасибо, ваш заказ принят!</h1>
+        <p class="order-confirmation-message">Мы свяжемся с вами в ближайшее время для подтверждения заказа.</p>
+        <div class="order-confirmation-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#FBB03B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+        </div>
+    </div>
+    <a href="{{ url_for('all_products') }}" class="return-to-menu-button" id="return-to-menu-btn">Вернуться в меню</a>
+</div>
+
+<style>
+    .order-confirmation-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 70vh;
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .order-confirmation-content {
+        background-color: #FFFFFF;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        padding: 40px;
+        margin-bottom: 30px;
+        max-width: 600px;
+        width: 100%;
+    }
+    
+    .order-confirmation-heading {
+        color: #3A2A1F;
+        font-size: 28px;
+        margin-bottom: 20px;
+    }
+    
+    .order-confirmation-message {
+        color: #666;
+        font-size: 18px;
+        margin-bottom: 30px;
+    }
+    
+    .order-confirmation-icon {
+        margin: 20px 0;
+    }
+    
+    .return-to-menu-button {
+        display: block;
+        width: 100%;
+        max-width: 600px;
+        padding: 20px;
+        background-color: #FBB03B;
+        color: #FFFFFF;
+        font-size: 20px;
+        font-weight: 700;
+        text-align: center;
+        text-decoration: none;
+        border-radius: 8px;
+        transition: background-color 0.3s, transform 0.2s;
+        box-shadow: 0 4px 10px rgba(251, 176, 59, 0.3);
+    }
+    
+    .return-to-menu-button:hover {
+        background-color: #EAA02B;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(251, 176, 59, 0.4);
+    }
+</style>
+
+<script>
+    // Скрипт для сброса корзины и количества выбранных товаров при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        // Вызываем API для сброса корзины
+        fetch("{{ url_for('api_reset_cart') }}", { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Reset cart response:', data);
+            if (data.status === 'success') {
+                // Обновляем отображение корзины в интерфейсе
+                const cartTotalItemsElement = document.getElementById('cart-total-items');
+                if (cartTotalItemsElement) {
+                    cartTotalItemsElement.innerText = '0';
+                }
+                
+                // Очищаем итоговую сумму
+                const cartTotalAmountElement = document.getElementById('cart-total-amount');
+                if (cartTotalAmountElement) {
+                    cartTotalAmountElement.innerText = '0.00 ₽';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error resetting cart:', error);
+        });
+        
+        // Обработчик клика по кнопке "Вернуться в меню"
+        document.getElementById('return-to-menu-btn').addEventListener('click', function(e) {
+            // Дополнительная логика перед переходом на страницу меню
+            console.log('Возвращаемся в меню...');
+            
+            // Сохраняем флаг в localStorage, чтобы на странице меню знать, что нужно сбросить отображение количества товаров
+            localStorage.setItem('resetProductQuantities', 'true');
+        });
+    });
+</script>
+{% endblock %}

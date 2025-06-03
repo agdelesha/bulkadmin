@@ -1,0 +1,141 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}{{ form_title }} - Админ-панель{% endblock %}
+
+{% block admin_content %}
+<h1 class="page-heading">{{ form_title }}</h1>
+
+<form method="POST" action="{{ form_action }}" class="admin-form" enctype="multipart/form-data">
+    {# CSRF token, если будете использовать Flask-WTF позже, сейчас не обязательно #}
+    {# {{ form.csrf_token }} #}
+
+    <div class="form-group">
+        <label for="id">ID Товара (уникальный):</label>
+        <input type="text" id="id" name="id" value="{{ product.id if product else '' }}" required {% if product %}readonly{% endif %}>
+        {% if product %}
+        <small>ID нельзя изменить для существующего товара.</small>
+        {% endif %}
+    </div>
+
+    <div class="form-group">
+        <label for="name">Название товара:</label>
+        <input type="text" id="name" name="name" value="{{ product.name if product else '' }}" required>
+    </div>
+
+    <div class="form-group">
+        <label for="category_id">Категория:</label>
+        <select id="category_id" name="category_id" class="form-control" required>
+            <option value="" disabled {% if not product or not product.category_id %}selected{% endif %}>Выберите категорию</option>
+            {% for category in categories %}
+                <option value="{{ category.id }}" 
+                        {% if product and product.category_id and product.category_id|string == category.id|string %}selected{% endif %}>
+                    {{ category.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="price">Цена (в рублях):</label>
+        <input type="number" id="price" name="price" step="0.01" min="0" value="{{ product.price if product else '' }}" required>
+    </div>
+
+    <div class="form-group">
+        <label for="description">Краткое описание:</label>
+        <textarea id="description" name="description" rows="4">{{ product.description if product else '' }}</textarea>
+        <small>Краткое описание отображается в списке товаров</small>
+    </div>
+
+    <div class="form-group">
+        <label for="detailed_info">Подробная информация:</label>
+        <textarea id="detailed_info" name="detailed_info" rows="8">{{ product.detailed_info if product else '' }}</textarea>
+        <small>Подробная информация отображается на странице товара</small>
+    </div>
+
+    <div class="form-group">
+        <label>Пищевая ценность (на 100г):</label>
+        <div style="display: flex; gap: 10px;">
+            <div style="flex: 1;">
+                <label for="proteins">Белки (г):</label>
+                <input type="number" id="proteins" name="proteins" step="0.1" min="0" value="{{ product.proteins if product and product.proteins else '' }}">
+            </div>
+            <div style="flex: 1;">
+                <label for="fats">Жиры (г):</label>
+                <input type="number" id="fats" name="fats" step="0.1" min="0" value="{{ product.fats if product and product.fats else '' }}">
+            </div>
+            <div style="flex: 1;">
+                <label for="carbs">Углеводы (г):</label>
+                <input type="number" id="carbs" name="carbs" step="0.1" min="0" value="{{ product.carbs if product and product.carbs else '' }}">
+            </div>
+        </div>
+    </div>
+
+    {% if product and product.image_url %}
+    <div class="form-group">
+        <label>Текущее изображение:</label>
+        <img src="{{ url_for('static', filename=product.image_url) }}" alt="Текущее изображение" style="max-width: 200px; max-height: 200px; display: block; margin-bottom: 10px;">
+        <small>Чтобы изменить или удалить изображение, загрузите новый файл. Чтобы оставить текущее, не выбирайте новый файл.</small>
+    </div>
+    {% endif %}
+
+    <div class="form-group">
+        <label for="image_file">Загрузить новое изображение:</label>
+        <input type="file" id="image_file" name="image_file" accept="image/png, image/jpeg, image/gif">
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="admin-button save-button">{{ submit_button_text }}</button>
+        <a href="{{ url_for('admin_products_list') }}" class="admin-button cancel-button">Отмена</a>
+    </div>
+</form>
+
+<style>
+.admin-form {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+.form-group textarea {
+    resize: vertical;
+}
+.form-group small {
+    display: block;
+    margin-top: 3px;
+    font-size: 0.85em;
+    color: #666;
+}
+.form-actions {
+    margin-top: 20px;
+    text-align: right;
+}
+.admin-button.save-button {
+    background-color: #28a745; /* Зеленый */
+    color: white;
+}
+.admin-button.cancel-button {
+    background-color: #6c757d; /* Серый */
+    color: white;
+    margin-left: 10px;
+}
+</style>
+{% endblock %}

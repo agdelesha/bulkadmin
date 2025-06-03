@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="product-detail-container">
+    <div class="product-detail-header">
+        <a href="{{ url_for('products_in_category', category_name=product.category.name) }}" class="back-button">
+            <i class="fas fa-arrow-left"></i> Назад к категории
+        </a>
+        <h1 class="product-detail-title">{{ product.name }}</h1>
+    </div>
+
+    <div class="product-detail-content">
+        <div class="product-detail-image">
+            <img src="{{ '/static/' + product.image_url if product.image_url else '/static/images/no-image.svg' }}" alt="{{ product.name }}" class="product-detail-img" onerror="this.src='/static/images/no-image.svg'">
+            
+            <!-- Кнопка + на фото товара -->
+            <button type="button" class="product-image-cart-button js-add-to-cart" 
+                    data-product-id="{{ product.id }}" 
+                    {% if product.quantity_in_cart > 0 %}style="display:none;"{% endif %}>+</button>
+            
+            <!-- Контролы количества на фото товара -->
+            <div class="product-image-quantity-controls js-quantity-controls" 
+                 data-product-id="{{ product.id }}" 
+                 {% if not product.quantity_in_cart or product.quantity_in_cart == 0 %}style="display:none;"{% endif %}>
+                <button type="button" class="minus-btn js-decrease-quantity" data-product-id="{{ product.id }}">-</button>
+                <span class="item-in-cart-indicator js-product-quantity-display js-editable-quantity" 
+                      data-product-id="{{ product.id }}">
+                    {% if product.quantity_in_cart > 0 %}{{ product.quantity_in_cart }}{% else %}0{% endif %}
+                </span>
+                <button type="button" class="plus-btn js-increase-quantity" data-product-id="{{ product.id }}">+</button>
+            </div>
+        </div>
+
+        <div class="product-detail-info">
+            <div class="product-detail-price">{{ product.price }} ₽</div>
+            
+            <div class="product-detail-description">
+                <h2>Описание</h2>
+                <p>{{ product.description }}</p>
+            </div>
+            
+            {% if product.detailed_info %}
+            <div class="product-detail-full-info">
+                <h2>Подробная информация</h2>
+                <p>{{ product.detailed_info|safe }}</p>
+            </div>
+            {% endif %}
+            
+            {% if product.proteins or product.fats or product.carbs %}
+            <div class="product-nutrition">
+                <h2>Пищевая ценность (на 100г)</h2>
+                <div class="nutrition-grid">
+                    {% if product.proteins %}
+                    <div class="nutrition-item">
+                        <div class="nutrition-value">{{ product.proteins }}г</div>
+                        <div class="nutrition-name">Белки</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if product.fats %}
+                    <div class="nutrition-item">
+                        <div class="nutrition-value">{{ product.fats }}г</div>
+                        <div class="nutrition-name">Жиры</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if product.carbs %}
+                    <div class="nutrition-item">
+                        <div class="nutrition-value">{{ product.carbs }}г</div>
+                        <div class="nutrition-name">Углеводы</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Product detail page loaded');
+        
+        // Добавляем обработчик для обновления отображения количества товара
+        document.addEventListener('cart:updated', function() {
+            // Получаем текущее состояние корзины
+            fetch('/api/cart/state')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Обновляем отображение количества товара на странице
+                        const productId = '{{ product.id }}';
+                        const quantity = data.cart[productId] || 0;
+                        updateQuantityDisplay(productId, quantity);
+                    }
+                })
+                .catch(error => console.error('Error fetching cart state:', error));
+        });
+    });
+    
+    function updateQuantityDisplay(productId, quantity) {
+        // Обновляем отображение количества товара
+        const quantityDisplays = document.querySelectorAll(`.js-product-quantity-display[data-product-id="${productId}"]`);
+        quantityDisplays.forEach(display => {
+            display.textContent = quantity;
+        });
+        
+        // Показываем/скрываем кнопку добавления в корзину
+        const addButtons = document.querySelectorAll(`.js-add-to-cart[data-product-id="${productId}"]`);
+        addButtons.forEach(button => {
+            button.style.display = quantity > 0 ? 'none' : 'block';
+        });
+        
+        // Показываем/скрываем контролы количества
+        const quantityControls = document.querySelectorAll(`.js-quantity-controls[data-product-id="${productId}"]`);
+        quantityControls.forEach(control => {
+            control.style.display = quantity > 0 ? 'flex' : 'none';
+        });
+    }
+    
+    // Функция для синхронизации количества товара в корзине
+    document.addEventListener('DOMContentLoaded', function() {
+        // Запрашиваем актуальное количество товара в корзине с сервера
+        const productId = '{{ product.id }}';
+        
+        // Создаем запрос к API для получения текущего количества товара
+        // Используем тот же запрос, что и при добавлении товара в корзину
+        fetch("{{ url_for('api_cart_unified') }}", { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                product_id: productId, 
+                get_quantity: true
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' && data.changed_item) {
+                // Обновляем отображение количества товара
+                updateQuantityDisplay(productId, data.changed_item.new_quantity);
+            }
+        })
+        .catch(error => console.error('Ошибка при получении количества товара:', error));
+    });
+
+</script>
+{% endblock %}

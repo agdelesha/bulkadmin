@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<!-- Поисковая строка -->
+<div class="search-container">
+    <form action="{{ url_for('all_products') }}" method="get" class="search-form">
+        <div class="search-input-container">
+            <input type="text" name="search" placeholder="Поиск товаров..." value="{{ search_query }}" class="search-input">
+            <button type="submit" class="search-button">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </form>
+</div>
+
+<div id="server-rendered-products">
+    {% include '_product_grid_partial.html' %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('input[name="search"]');
+    const searchForm = searchInput.closest('form');
+    let suggestionsContainer = document.getElementById('suggestions-container');
+
+    if (!suggestionsContainer) {
+        suggestionsContainer = document.createElement('div');
+        suggestionsContainer.id = 'suggestions-container';
+        searchForm.appendChild(suggestionsContainer);
+    }
+
+    let debounceTimer;
+
+        const productGridContainer = document.getElementById('server-rendered-products');
+
+    function attachProductLinkListeners() {
+        document.querySelectorAll('.product-name-link').forEach(link => {
+            link.addEventListener('click', function(event) {
+                event.stopPropagation();
+                // Позволяем ссылке работать как обычно
+                // Если в будущем потребуется AJAX-переход на страницу товара, логика будет здесь
+            });
+        });
+    }
+
+    function reinitializeDynamicContent() {
+        if (typeof initializeApp === 'function') {
+            initializeApp(); // Из base.html, инициализирует кнопки корзины и состояние
+        } else if (typeof initializeCartButtons === 'function') {
+            initializeCartButtons(); // Запасной вариант, если initializeApp не найдена
+        }
+        attachProductLinkListeners(); // Навешиваем обработчики на ссылки товаров
+    }
+
+    function updateProductGrid(query) {
+        fetch(`/api/filter_products?search=${encodeURIComponent(query)}`)
+            .then(response => response.text()) // Получаем HTML как текст
+            .then(html => {
+                productGridContainer.innerHTML = html;
+                reinitializeDynamicContent(); // Повторная инициализация всего динамического контента
+            })
+            .catch(error => {
+                console.error('Error fetching filtered products:', error);
+                productGridContainer.innerHTML = '<p>Ошибка при загрузке товаров. Попробуйте позже.</p>';
+            });
+    }
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const query = this.value.trim(); // Захватываем значение query здесь
+
+        debounceTimer = setTimeout(() => {
+            // Используем значение query, захваченное на момент события input
+            // 1. Обновляем сетку товаров
+            updateProductGrid(query);
+
+            // 2. Обрабатываем подсказки
+            if (query.length >= 2) {
+                fetch(`/api/search_suggestions?query=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(suggestions => {
+                        suggestionsContainer.innerHTML = ''; // Очищаем предыдущие подсказки
+                        if (suggestions.length > 0) {
+                            const ul = document.createElement('ul');
+                            suggestions.forEach(suggestionText => {
+                                const li = document.createElement('li');
+                                li.textContent = suggestionText;
+                                li.addEventListener('click', function() {
+                                    searchInput.value = this.textContent;
+                                    const newQuery = this.textContent.trim();
+                                    suggestionsContainer.innerHTML = '';
+                                    suggestionsContainer.style.display = 'none';
+                                    updateProductGrid(newQuery); // Обновляем грид по выбранной подсказке
+                                });
+                                ul.appendChild(li);
+                            });
+                            suggestionsContainer.appendChild(ul);
+                            suggestionsContainer.style.display = 'block';
+                        } else {
+                            suggestionsContainer.style.display = 'none'; // Нет подсказок
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching suggestions:', error);
+                        suggestionsContainer.innerHTML = '';
+                        suggestionsContainer.style.display = 'none';
+                    });
+            } else {
+                // Если запрос короткий, скрываем подсказки
+                suggestionsContainer.innerHTML = '';
+                suggestionsContainer.style.display = 'none';
+            }
+        }, 300); // Задержка в 300 мс
+    });
+
+    function handlePageLoadScripts() {
+        // 1. Сброс количества товаров после заказа (логика из старого скрипта)
+        if (localStorage.getItem('resetProductQuantities') === 'true') {
+            console.log('Resetting product quantities after order on page load');
+            document.querySelectorAll('.product-image-cart-button').forEach(button => {
+                button.style.display = 'block';
+            });
+            document.querySelectorAll('.product-image-quantity-controls').forEach(controls => {
+                controls.style.display = 'none';
+            });
+            document.querySelectorAll('.js-product-quantity-display').forEach(display => {
+                display.textContent = '0';
+            });
+            localStorage.removeItem('resetProductQuantities');
+        }
+
+        // 2. Первоначальное навешивание обработчиков на ссылки товаров
+        attachProductLinkListeners();
+    }
+
+    // Первоначальная инициализация скриптов страницы
+    handlePageLoadScripts();
+
+    // Скрывать подсказки при клике вне поля ввода и контейнера подсказок
+    // Скрывать подсказки при прокрутке страницы
+    window.addEventListener('scroll', function() {
+        if (suggestionsContainer.style.display === 'block') {
+            suggestionsContainer.innerHTML = '';
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+
+    // Скрывать подсказки при клике вне поля ввода и контейнера подсказок
+    document.addEventListener('click', function(event) {
+        if (!searchForm.contains(event.target)) {
+            suggestionsContainer.innerHTML = '';
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

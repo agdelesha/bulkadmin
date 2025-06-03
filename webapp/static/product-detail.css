@@ -1,0 +1,115 @@
+/* Стили для страницы с подробным описанием товара */
+.product-detail-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 15px;
+}
+
+.product-detail-header {
+    margin-bottom: 20px;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    color: #333;
+    text-decoration: none;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.back-button i {
+    margin-right: 5px;
+}
+
+.product-detail-title {
+    font-size: 24px;
+    margin: 10px 0;
+    color: #333;
+}
+
+.product-detail-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+}
+
+.product-detail-image {
+    flex: 1;
+    min-width: 300px;
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.product-detail-img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.product-detail-info {
+    flex: 1;
+    min-width: 300px;
+}
+
+.product-detail-price {
+    font-size: 24px;
+    font-weight: bold;
+    color: #FBB03B;
+    margin-bottom: 20px;
+}
+
+.product-detail-description,
+.product-detail-full-info,
+.product-nutrition {
+    margin-bottom: 25px;
+}
+
+.product-detail-description h2,
+.product-detail-full-info h2,
+.product-nutrition h2 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.nutrition-grid {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.nutrition-item {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    min-width: 80px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.nutrition-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #FBB03B;
+}
+
+.nutrition-name {
+    font-size: 14px;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .product-detail-content {
+        flex-direction: column;
+    }
+    
+    .product-detail-image,
+    .product-detail-info {
+        width: 100%;
+    }
+}

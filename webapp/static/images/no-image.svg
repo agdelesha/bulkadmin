@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
+  <rect width="300" height="200" fill="#f5f5f5"/>
+  <text x="150" y="100" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" fill="#999">Нет изображения</text>
+  <path d="M150,60 C130,60 115,75 115,95 C115,115 130,130 150,130 C170,130 185,115 185,95 C185,75 170,60 150,60 Z M150,120 C135,120 125,110 125,95 C125,80 135,70 150,70 C165,70 175,80 175,95 C175,110 165,120 150,120 Z" fill="#ccc"/>
+  <path d="M120,140 L180,140 L180,150 L120,150 Z" fill="#ccc"/>
+</svg>
