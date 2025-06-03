@@ -1,0 +1,10 @@
+echo "__pycache__/
+*.py[cod]
+*$py.class
+.env
+venv/
+instance/
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store" > .gitignore
