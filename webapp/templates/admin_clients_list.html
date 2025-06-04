@@ -1,0 +1,161 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Список клиентов - Админ-панель{% endblock %}
+
+{% block admin_content %}
+<div class="page-header">
+    <h1 class="page-title">Управление клиентами</h1>
+</div>
+
+{% if client_data %}
+<div class="table-container">
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Имя</th>
+            <th>Telegram</th>
+            <th>Телефон</th>
+            <th>ИНН</th>
+            <th>Адрес доставки</th>
+            <th>Заказов</th>
+            <th>Сумма</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for data in client_data %}
+        <tr>
+            <td>{{ data.client.id }}</td>
+            <td>{{ data.client.first_name }} {{ data.client.last_name }}</td>
+            <td>{% if data.client.username %}@{{ data.client.username }}{% else %}-{% endif %}</td>
+            <td>{{ data.client.phone_number or '-' }}</td>
+            <td>{{ data.client.inn or '-' }}</td>
+            <td>{{ data.client.delivery_address or '-' }}</td>
+            <td>{{ data.orders_count }}</td>
+            <td>{{ data.total_spent|round(2) }} ₽</td>
+            <td class="actions-cell">
+                <div class="table-actions">
+                    <a href="{{ url_for('admin_edit_client', client_id=data.client.id) }}" class="btn btn-sm btn-edit" title="Редактировать">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <button class="btn btn-sm btn-info toggle-orders" data-client-id="{{ data.client.id }}" title="Показать заказы">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+        <tr class="client-orders-row" id="client-orders-{{ data.client.id }}" style="display: none;">
+            <td colspan="9">
+                <div class="client-orders-container">
+                    <h4>Заказы клиента</h4>
+                    {% if data.orders %}
+                    <table class="orders-table">
+                        <thead>
+                            <tr>
+                                <th>ID заказа</th>
+                                <th>Дата</th>
+                                <th>Статус</th>
+                                <th>Товары</th>
+                                <th>Сумма</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in data.orders %}
+                            <tr>
+                                <td>#{{ order.id }}</td>
+                                <td>{{ order.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                                <td>{{ order.status }}</td>
+                                <td>
+                                    <ul class="order-items-list">
+                                        {% for item in order.items %}
+                                        <li>{{ item.product.name }} x {{ item.quantity }} = {{ (item.price_at_purchase * item.quantity)|round(2) }} ₽</li>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                                <td>{{ order.items|sum(attribute='price_at_purchase')|round(2) }} ₽</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p>У клиента нет заказов.</p>
+                    {% endif %}
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<style>
+.client-orders-container {
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+.orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 0.9em;
+}
+
+.orders-table th, .orders-table td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.orders-table th {
+    background-color: #f2f2f2;
+}
+
+.order-items-list {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.toggle-orders {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.toggle-orders:hover {
+    background-color: #138496;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработчик для кнопок показа/скрытия заказов
+    const toggleButtons = document.querySelectorAll('.toggle-orders');
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const clientId = this.getAttribute('data-client-id');
+            const ordersRow = document.getElementById(`client-orders-${clientId}`);
+            
+            if (ordersRow.style.display === 'none') {
+                ordersRow.style.display = 'table-row';
+                this.innerHTML = '<i class="fas fa-chevron-up"></i>';
+                this.title = 'Скрыть заказы';
+            } else {
+                ordersRow.style.display = 'none';
+                this.innerHTML = '<i class="fas fa-list"></i>';
+                this.title = 'Показать заказы';
+            }
+        });
+    });
+});
+</script>
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-users empty-icon"></i>
+    <h2>Нет клиентов</h2>
+    <p>В системе пока нет зарегистрированных клиентов.</p>
+</div>
+{% endif %}
+{% endblock %}

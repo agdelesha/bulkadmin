@@ -785,8 +785,51 @@ def order_placed():
 @app.route('/admin/products/')
 @admin_required # Защищаем этот маршрут
 def admin_products_list():
-    products = Product.query.join(Category).order_by(Category.name, Product.name).all()
+    products = Product.query.all()
     return render_template('admin_products_list.html', products=products)
+
+@app.route('/admin/clients/')
+@admin_required
+def admin_clients_list():
+    # Получаем всех клиентов
+    clients = Client.query.all()
+    
+    # Для каждого клиента получаем его заказы
+    client_data = []
+    for client in clients:
+        orders = Order.query.filter_by(client_id=client.id).filter(Order.status != CART_STATUS).all()
+        client_info = {
+            'client': client,
+            'orders': orders,
+            'orders_count': len(orders),
+            'total_spent': sum(sum(item.price_at_purchase * item.quantity for item in order.items) for order in orders if order.items)
+        }
+        client_data.append(client_info)
+    
+    return render_template('admin_clients_list.html', client_data=client_data)
+
+@app.route('/admin/client/edit/<int:client_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_client(client_id):
+    client = Client.query.get_or_404(client_id)
+    
+    if request.method == 'POST':
+        # Обновляем данные клиента
+        client.first_name = request.form.get('first_name', '')
+        client.last_name = request.form.get('last_name', '')
+        client.phone_number = request.form.get('phone_number', '')
+        client.inn = request.form.get('inn', '')
+        client.delivery_address = request.form.get('delivery_address', '')
+        
+        try:
+            db.session.commit()
+            flash('Информация о клиенте успешно обновлена', 'success')
+            return redirect(url_for('admin_clients_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка при обновлении информации о клиенте: {str(e)}', 'danger')
+    
+    return render_template('admin_client_form.html', client=client)
 
 @app.route('/admin/product/add', methods=['GET', 'POST'])
 @admin_required # Защищаем этот маршрут

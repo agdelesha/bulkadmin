@@ -1,0 +1,114 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Редактирование клиента - Админ-панель{% endblock %}
+
+{% block admin_content %}
+<div class="page-header">
+    <h1 class="page-title">Редактирование информации о клиенте</h1>
+</div>
+
+<div class="admin-form-container">
+    <form method="POST" action="{{ url_for('admin_edit_client', client_id=client.id) }}" class="admin-form">
+        <div class="form-group">
+            <label for="id">ID клиента:</label>
+            <input type="text" id="id" value="{{ client.id }}" readonly class="form-control-readonly">
+            <small>ID клиента нельзя изменить</small>
+        </div>
+
+        <div class="form-group">
+            <label for="first_name">Имя:</label>
+            <input type="text" id="first_name" name="first_name" value="{{ client.first_name or '' }}" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label for="last_name">Фамилия:</label>
+            <input type="text" id="last_name" name="last_name" value="{{ client.last_name or '' }}" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label for="username">Имя пользователя Telegram:</label>
+            <input type="text" id="username" value="{{ client.username or '' }}" readonly class="form-control-readonly">
+            <small>Имя пользователя Telegram нельзя изменить вручную</small>
+        </div>
+
+        <div class="form-group">
+            <label for="phone_number">Номер телефона:</label>
+            <input type="text" id="phone_number" name="phone_number" value="{{ client.phone_number or '' }}" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label for="inn">ИНН:</label>
+            <input type="text" id="inn" name="inn" value="{{ client.inn or '' }}" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label for="delivery_address">Адрес доставки:</label>
+            <textarea id="delivery_address" name="delivery_address" rows="3" class="form-control">{{ client.delivery_address or '' }}</textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+            <a href="{{ url_for('admin_clients_list') }}" class="btn btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<style>
+.admin-form-container {
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.admin-form {
+    max-width: 800px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.form-control {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.form-control-readonly {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    color: #777;
+    font-size: 16px;
+}
+
+textarea.form-control {
+    resize: vertical;
+}
+
+.form-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 10px;
+}
+
+small {
+    color: #777;
+    font-size: 12px;
+    margin-top: 5px;
+    display: block;
+}
+</style>
+{% endblock %}
